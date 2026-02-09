@@ -28,6 +28,30 @@ function isDateRow(cell: string): boolean {
   );
 }
 
+/** Multi-day date range e.g. "Feb 12-26", "Feb 13-15" */
+function isDateRangeRow(cell: string): boolean {
+  const trimmed = (cell || '').trim();
+  return /^[A-Za-z]+\s+\d{1,2}-\d{1,2}(\s+\d{4})?$/.test(trimmed) || /^[A-Za-z]+\s+\d{1,2}-\d{1,2}\s*$/.test(trimmed);
+}
+
+/** Parse "Feb 12-26" or "Feb 13-15" to start date "2026-02-12" */
+function parseDateRangeToStartDate(rangeStr: string): string | null {
+  const trimmed = (rangeStr || '').trim();
+  const match = trimmed.match(/^([A-Za-z]+)\s+(\d{1,2})-\d{1,2}/);
+  if (!match) return null;
+  const monthStr = match[1].toLowerCase();
+  const month =
+    monthStr.startsWith('jan') ? 1 : monthStr.startsWith('feb') ? 2 : monthStr.startsWith('mar') ? 3
+    : monthStr.startsWith('apr') ? 4 : monthStr.startsWith('may') ? 5 : monthStr.startsWith('jun') ? 6
+    : monthStr.startsWith('jul') ? 7 : monthStr.startsWith('aug') ? 8 : monthStr.startsWith('sep') ? 9
+    : monthStr.startsWith('oct') ? 10 : monthStr.startsWith('nov') ? 11 : monthStr.startsWith('dec') ? 12
+    : MONTH_NAMES[monthStr] ?? null;
+  if (!month) return null;
+  const day = parseInt(match[2], 10);
+  if (day < 1 || day > 31) return null;
+  return `${ETHDENVER_YEAR}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+}
+
 /** Time pattern e.g. "6:00 pm" or "10:00 am" */
 function isTimeLike(cell: string): boolean {
   const trimmed = (cell || '').trim();
@@ -90,6 +114,31 @@ export function parseSheetRows(rows: string[][]): ParsedEvent[] {
       continue;
     }
 
+    if (isDateRangeRow(col0) && col2) {
+      const eventDate = parseDateRangeToStartDate(col0);
+      if (eventDate) {
+        const regF = col5 || '';
+        const regG = col6 || '';
+        const registrationUrl = looksLikeUrl(regF)
+          ? regF
+          : looksLikeUrl(regG)
+            ? regG
+            : regF || null;
+        const notes = col6 && !looksLikeUrl(col6) ? col6 : null;
+        events.push({
+          eventDate,
+          startTime: col0,
+          endTime: null,
+          eventName: col2,
+          organizer: col3 || null,
+          venue: col4 || null,
+          registrationUrl,
+          notes,
+        });
+      }
+      continue;
+    }
+
     if (isTimeLike(col0) && col2 && currentDate) {
       const regF = col5 || '';
       const regG = col6 || '';
@@ -116,15 +165,38 @@ export function parseSheetRows(rows: string[][]): ParsedEvent[] {
 }
 
 /**
+ * Detect delimiter from first line: tab if more tabs than commas, else comma.
+ */
+function detectDelimiter(text: string): ',' | '\t' {
+  const firstLine = text.split(/\r?\n/)[0] ?? '';
+  const tabs = (firstLine.match(/\t/g) ?? []).length;
+  const commas = (firstLine.match(/,/g) ?? []).length;
+  return tabs > commas ? '\t' : ',';
+}
+
+/**
+ * Parse CSV/TSV string into rows (string[][]).
+ * Auto-detects tab vs comma delimiter to support both Caladan exports.
+ */
+export async function parseCsvToRows(csvText: string): Promise<string[][]> {
+  const { parse } = await import('csv-parse/sync');
+  const delimiter = detectDelimiter(csvText);
+  return parse(csvText, {
+    delimiter,
+    relax_column_count: true,
+    skip_empty_lines: true,
+    trim: true,
+  }) as string[][];
+}
+
+/**
  * Fetch sheet as CSV and return rows (string[][]).
  */
 async function fetchSheetAsCsv(csvUrl: string): Promise<string[][]> {
   const res = await fetch(csvUrl, { cache: 'no-store' });
   if (!res.ok) throw new Error(`CSV fetch failed: ${res.status} ${res.statusText}`);
   const text = await res.text();
-  const { parse } = await import('csv-parse/sync');
-  const rows = parse(text, { relax_column_count: true, skip_empty_lines: true }) as string[][];
-  return rows;
+  return await parseCsvToRows(text);
 }
 
 /**

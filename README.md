@@ -26,7 +26,13 @@ This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-appl
 
 ## ETHDenver events import
 
-To import side events from the [Caladan sheet](https://docs.google.com/spreadsheets/d/1TYpWZwW2u5V32QBMpl_EY8wjxN744E7ttZ0YrQrMKOI/edit): set either `ETHDENVER_SHEETS_CSV_URL` (publish the sheet to web as CSV) or `GOOGLE_SHEETS_API_KEY` in `.env`, then `POST /api/events/import` (e.g. `curl -X POST http://localhost:3000/api/events/import`).
+**Upload a CSV file (e.g. from Downloads):**
+
+- Open [http://localhost:3000/upload-events](http://localhost:3000/upload-events), choose the Caladan “Event List” CSV (e.g. `ETHDenver 2026 Side Events Sheet - by Caladan - Event List.csv`), and click **Import to database**.
+- Or from the terminal:  
+  `curl -X POST -H "Content-Type: text/csv" --data-binary @"Downloads/ETHDenver 2026 Side Events Sheet - by Caladan - Event List.csv" http://localhost:3000/api/events/import`
+
+**Import from URL/API:** Set `ETHDENVER_SHEETS_CSV_URL` or `GOOGLE_SHEETS_API_KEY` in `.env`, then `POST /api/events/import` with an empty body (e.g. `curl -X POST http://localhost:3000/api/events/import`).
 
 ## Learn More
 

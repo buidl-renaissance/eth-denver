@@ -2,7 +2,11 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { createHash } from 'crypto';
 import { getDb } from '@/db/drizzle';
 import { events } from '@/db/schema';
-import { fetchAndParseEvents } from '@/lib/sheets';
+import { fetchAndParseEvents, parseCsvToRows, parseSheetRows } from '@/lib/sheets';
+
+export const config = {
+  api: { bodyParser: false },
+};
 
 type ImportResponse = {
   ok: boolean;
@@ -12,10 +16,20 @@ type ImportResponse = {
   parseErrors?: string[];
 };
 
+function readRawBody(req: NextApiRequest): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    req.on('data', (chunk: Buffer) => chunks.push(chunk));
+    req.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')));
+    req.on('error', reject);
+  });
+}
+
 /**
  * POST /api/events/import
- * Fetches the ETHDenver side events sheet (CSV or Google Sheets API) and upserts into the events table.
- * Set ETHDENVER_SHEETS_CSV_URL or GOOGLE_SHEETS_API_KEY in env.
+ * 1) If request has a body (e.g. CSV file contents), parse it and import.
+ * 2) Otherwise fetches from ETHDENVER_SHEETS_CSV_URL or Google Sheets API.
+ * To upload a CSV file: curl -X POST -H "Content-Type: text/csv" --data-binary @"/path/to/Event List.csv" http://localhost:3000/api/events/import
  */
 export default async function handler(
   req: NextApiRequest,
@@ -26,7 +40,21 @@ export default async function handler(
   }
 
   try {
-    const { events: parsed, source } = await fetchAndParseEvents();
+    const rawBody = await readRawBody(req);
+    const csvBody = rawBody.trim();
+
+    let parsed: Awaited<ReturnType<typeof parseSheetRows>>;
+    let source: string;
+
+    if (csvBody.length > 0) {
+      const rows = await parseCsvToRows(csvBody);
+      parsed = parseSheetRows(rows);
+      source = 'upload';
+    } else {
+      const result = await fetchAndParseEvents();
+      parsed = result.events;
+      source = result.source;
+    }
 
     if (parsed.length === 0) {
       return res.status(200).json({
@@ -38,7 +66,7 @@ export default async function handler(
     }
 
     const db = getDb();
-    const now = Math.floor(Date.now() / 1000);
+    const now = new Date();
 
     const rows = parsed.map((e) => {
       const id = createHash('sha256')
