@@ -24,6 +24,10 @@ The `pages/api` directory is mapped to `/api/*`. Files in this directory are tre
 
 This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## ETHDenver events import
+
+To import side events from the [Caladan sheet](https://docs.google.com/spreadsheets/d/1TYpWZwW2u5V32QBMpl_EY8wjxN744E7ttZ0YrQrMKOI/edit): set either `ETHDENVER_SHEETS_CSV_URL` (publish the sheet to web as CSV) or `GOOGLE_SHEETS_API_KEY` in `.env`, then `POST /api/events/import` (e.g. `curl -X POST http://localhost:3000/api/events/import`).
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

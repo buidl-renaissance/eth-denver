@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { sql } from 'drizzle-orm';
 
 // User roles
@@ -28,3 +28,24 @@ export const users = sqliteTable('users', {
   createdAt: integer('createdAt', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
   updatedAt: integer('updatedAt', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
 });
+
+// ETHDenver side events (imported from Caladan sheet)
+export const events = sqliteTable(
+  'events',
+  {
+    id: text('id').primaryKey(),
+    eventDate: text('eventDate').notNull(), // YYYY-MM-DD
+    startTime: text('startTime').notNull(),
+    endTime: text('endTime'),
+    eventName: text('eventName').notNull(),
+    organizer: text('organizer'),
+    venue: text('venue'),
+    registrationUrl: text('registrationUrl'),
+    notes: text('notes'),
+    createdAt: integer('createdAt', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+    updatedAt: integer('updatedAt', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
+  },
+  (table) => [
+    uniqueIndex('events_date_name_start').on(table.eventDate, table.eventName, table.startTime),
+  ]
+);
