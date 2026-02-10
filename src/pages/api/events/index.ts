@@ -40,6 +40,7 @@ export default async function handler(
       organizer: r.organizer,
       venue: r.venue,
       registrationUrl: r.registrationUrl,
+      imageUrl: r.imageUrl,
       notes: r.notes,
       createdAt: r.createdAt,
       updatedAt: r.updatedAt,

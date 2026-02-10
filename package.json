@@ -11,7 +11,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:import-events": "tsx scripts/import-events.ts"
+    "db:import-events": "tsx scripts/import-events.ts",
+    "db:scrape-event-images": "tsx scripts/scrape-event-images.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.15.15",
@@ -37,6 +38,7 @@
     "drizzle-kit": "^0.31.8",
     "eslint": "^9",
     "eslint-config-next": "16.1.3",
+    "tsx": "^4.19.2",
     "typescript": "^5"
   }
 }

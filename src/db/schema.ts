@@ -41,6 +41,7 @@ export const events = sqliteTable(
     organizer: text('organizer'),
     venue: text('venue'),
     registrationUrl: text('registrationUrl'),
+    imageUrl: text('imageUrl'), // Open Graph og:image scraped from registration URL
     notes: text('notes'),
     createdAt: integer('createdAt', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
     updatedAt: integer('updatedAt', { mode: 'timestamp' }).default(sql`(strftime('%s', 'now'))`).notNull(),
