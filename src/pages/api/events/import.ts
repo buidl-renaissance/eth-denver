@@ -68,7 +68,15 @@ export default async function handler(
     const db = getDb();
     const now = new Date();
 
-    const rows = parsed.map((e) => {
+    const seen = new Set<string>();
+    const rows = parsed
+      .filter((e) => {
+        const key = `${e.eventDate}|${e.eventName}|${e.startTime}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((e) => {
       const id = createHash('sha256')
         .update(`${e.eventDate}|${e.eventName}|${e.startTime}`)
         .digest('hex')
@@ -89,8 +97,10 @@ export default async function handler(
     });
 
     await db.delete(events);
-    if (rows.length > 0) {
-      await db.insert(events).values(rows);
+    const BATCH_SIZE = 50;
+    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+      const batch = rows.slice(i, i + BATCH_SIZE);
+      await db.insert(events).values(batch);
     }
 
     return res.status(200).json({

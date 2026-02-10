@@ -186,6 +186,7 @@ export async function parseCsvToRows(csvText: string): Promise<string[][]> {
     relax_column_count: true,
     skip_empty_lines: true,
     trim: true,
+    relax_quotes: true,
   }) as string[][];
 }
 
